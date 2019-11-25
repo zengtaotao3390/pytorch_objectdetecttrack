@@ -28,16 +28,17 @@ function drawBoxes(objects) {
     //clear the previous drawings
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     //filter out objects that contain a class_name and then draw boxes and labels on each
-    objects.filter(object => object.name).forEach(object => {
-        let x = object.left * drawCanvas.width;
-        let y = object.top * drawCanvas.height;
-        let width = object.width * drawCanvas.width;
-        let height = object.height * drawCanvas.height;
+    objects.filter(object => object.class).forEach(object => {
+        let x = (object.left / uploadWidth) * drawCanvas.width;
+        let uploadHeight = uploadWidth * (drawCanvas.height / drawCanvas.width)
+        let y = (object.top / uploadHeight) * drawCanvas.height;
+        let width = (object.width / uploadWidth) * drawCanvas.width;
+        let height = (object.height / uploadHeight) * drawCanvas.height;
         // flip the x axis if local video is mirrored
         if (mirror){
             x = drawCanvas.width - (x + width)
         }
-        drawCtx.fillText(object.name + " - " + Math.round(object.similarity * 100, 1) + "%", x + 5, y + 20);
+        drawCtx.fillText(object.class + " - " + object.objectId, x + 5, y + 20);
         drawCtx.strokeRect(x, y, width, height);
     });
 }
@@ -48,18 +49,16 @@ function postFile(file) {
     //Set options as form data
     let formdata = new FormData();
     formdata.append("file", file);
-    formdata.append("faceSet", '39204b0838fde239b111b1434876fbea');
-    formdata.append("is_change_size", '1');
     // formdata.append("threshold", scoreThreshold);
 
     let xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://aitest.andcam.cn:10011/FaceRecognition/api/v1.0/searchAll', true);
+    xhr.open('POST', 'http://127.0.0.1:6789/track', true);
     xhr.onload = function () {
         if (this.status === 200) {
             let objects = JSON.parse(this.response);
-
+            console.log(objects);
             //draw the boxes
-            drawBoxes(objects.faces);
+            drawBoxes(objects);
 
             //Save and send the next image
             imageCtx.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, 0, 0, uploadWidth, uploadWidth * (v.videoHeight / v.videoWidth));

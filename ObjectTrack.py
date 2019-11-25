@@ -28,6 +28,7 @@ class ObjectTrack():
         self.Tensor = torch.FloatTensor
         self.mot_tracker = Sort()
         self.classes = utils.load_classes(self.class_path)
+        print('init finished')
 
     def detect_image(self, img):
         # scale and pad image
@@ -52,6 +53,7 @@ class ObjectTrack():
         return detections[0]
 
     def tracker(self, imageArray):
+        imageArray = cv2.imdecode(imageArray, cv2.IMREAD_COLOR)
         pilImg = Image.fromarray(imageArray)
         detections = self.detect_image(pilImg)
         pad_x = max(imageArray.shape[0] - imageArray.shape[1], 0) * (self.img_size / max(imageArray.shape))
@@ -60,7 +62,6 @@ class ObjectTrack():
         unpad_w = self.img_size - pad_x
         trackerMsgs = []
         if detections is not None:
-            trackerMsg = {}
             tracked_objects = self.mot_tracker.update(detections.cpu())
             for x1, y1, x2, y2, obj_id, cls_pred in tracked_objects:
                 box_h = int(((y2 - y1) / unpad_h) * imageArray.shape[0])
@@ -69,10 +70,10 @@ class ObjectTrack():
                 x1 = int(((x1 - pad_x // 2) / unpad_w) * imageArray.shape[1])
                 cls = self.classes[int(cls_pred)]
                 trackerMsg = {
-                    'x1': x1,
-                    'x2': x1+box_w,
-                    'y1': y1,
-                    'y2': y1+box_h,
+                    'left': x1,
+                    'width': box_w,
+                    'top': y1,
+                    'height': box_h,
                     'class': cls,
                     'objectId': int(obj_id)
                 }
@@ -83,4 +84,4 @@ class ObjectTrack():
 if __name__ == '__main__':
     track = ObjectTrack()
     image = Image.open('images/blueangels.jpg')
-    track.tracker(np.asarray(image))
+    print(track.tracker(np.asarray(image)))
