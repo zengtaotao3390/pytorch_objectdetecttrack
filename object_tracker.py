@@ -1,5 +1,6 @@
 from models import *
 from utils import *
+from utils import utils
 
 import os, sys, time, datetime, random
 import torch
@@ -21,10 +22,13 @@ nms_thres=0.4
 model = Darknet(config_path, img_size=img_size)
 model.load_weights(weights_path)
 model.cuda()
+
 model.eval()
 
 classes = utils.load_classes(class_path)
 Tensor = torch.cuda.FloatTensor
+# Tensor = torch.FloatTensor
+
 
 def detect_image(img):
     # scale and pad image
@@ -46,7 +50,7 @@ def detect_image(img):
         detections = utils.non_max_suppression(detections, 80, conf_thres, nms_thres)
     return detections[0]
 
-videopath = '../data/video/overpass.mp4'
+videopath = './data/MOV_0845.mp4'
 
 import cv2
 from sort import *
@@ -55,15 +59,15 @@ colors=[(255,0,0),(0,255,0),(0,0,255),(255,0,255),(128,0,0),(0,128,0),(0,0,128),
 vid = cv2.VideoCapture(videopath)
 mot_tracker = Sort() 
 
-cv2.namedWindow('Stream',cv2.WINDOW_NORMAL)
-cv2.resizeWindow('Stream', (800,600))
+# cv2.namedWindow('Stream',cv2.WINDOW_NORMAL)
+# cv2.resizeWindow('Stream', (800,600))
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 ret,frame=vid.read()
 vw = frame.shape[1]
 vh = frame.shape[0]
 print ("Video size", vw,vh)
-outvideo = cv2.VideoWriter(videopath.replace(".mp4", "-det.mp4"),fourcc,20.0,(vw,vh))
+outvideo = cv2.VideoWriter(videopath.replace(".mp4", "-det.mp4"),fourcc,29.0,(vw,vh))
 
 frames = 0
 starttime = time.time()
@@ -74,8 +78,9 @@ while(True):
     frames += 1
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pilimg = Image.fromarray(frame)
+    detectStartTime = time.time()
     detections = detect_image(pilimg)
-
+    print('cost time: {}'.format(time.time() - detectStartTime))
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
     img = np.array(pilimg)
     pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
@@ -84,7 +89,6 @@ while(True):
     unpad_w = img_size - pad_x
     if detections is not None:
         tracked_objects = mot_tracker.update(detections.cpu())
-
         unique_labels = detections[:, -1].cpu().unique()
         n_cls_preds = len(unique_labels)
         for x1, y1, x2, y2, obj_id, cls_pred in tracked_objects:
@@ -98,7 +102,7 @@ while(True):
             cv2.rectangle(frame, (x1, y1-35), (x1+len(cls)*19+80, y1), color, -1)
             cv2.putText(frame, cls + "-" + str(int(obj_id)), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 3)
 
-    cv2.imshow('Stream', frame)
+    # cv2.imshow('Stream', frame)
     outvideo.write(frame)
     ch = 0xFF & cv2.waitKey(1)
     if ch == 27:
@@ -106,5 +110,6 @@ while(True):
 
 totaltime = time.time()-starttime
 print(frames, "frames", totaltime/frames, "s/frame")
+print(totaltime)
 cv2.destroyAllWindows()
 outvideo.release()
