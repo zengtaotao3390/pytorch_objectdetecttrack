@@ -27,7 +27,7 @@ class det_model(object):
         self.__model = infer_engine.initialize_model_from_cfg( weights_file, gpu_id=gpu_id )
         self.gpu_id = gpu_id
     
-    def infer( self, im, thresh=0.65 ):
+    def infer( self, im, thresh=0.5 ):
         
         ts = time.time()
         timers = defaultdict(Timer)
@@ -53,13 +53,13 @@ class det_model(object):
             if score < thresh:
                 continue
             heads.append( [ int(x) for x in bbox ] + [float(score)])
-
-        heads1 = np.ones((len(heads), 7))
-        for i in range( len(heads) ):
-            head = heads[i]
-            for j in range(len(head)):
-                heads1[i, j] = head[j]
-        return heads1
+        return heads
+        # heads1 = np.ones((len(heads), 7))
+        # for i in range( len(heads) ):
+        #     head = heads[i]
+        #     for j in range(len(head)):
+        #         heads1[i, j] = head[j]
+        # return heads1
 
 if __name__ == '__main__':
     config_file = './config/head_detect_1gpu_e2e_faster_rcnn_R-50-FPN_2x.yaml'

@@ -63,22 +63,23 @@ class ObjectTrack():
             detections = utils.non_max_suppression(detections, 80, self.conf_thres, self.nms_thres)
         return detections[0]
 
-    def tracker(self, imageArray):
-        imageArray = cv2.imdecode(imageArray, cv2.IMREAD_COLOR)
-        pilImg = Image.fromarray(imageArray)
+    def tracker(self, imgArray):
+        img = cv2.imdecode(imgArray, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pilImg = Image.fromarray(img)
         detections = self.detect_image(pilImg)
-        pad_x = max(imageArray.shape[0] - imageArray.shape[1], 0) * (self.img_size / max(imageArray.shape))
-        pad_y = max(imageArray.shape[1] - imageArray.shape[0], 0) * (self.img_size / max(imageArray.shape))
+        pad_x = max(img.shape[0] - img.shape[1], 0) * (self.img_size / max(img.shape))
+        pad_y = max(img.shape[1] - img.shape[0], 0) * (self.img_size / max(img.shape))
         unpad_h = self.img_size - pad_y
         unpad_w = self.img_size - pad_x
         trackerMsgs = []
         if detections is not None:
             tracked_objects = self.mot_tracker.update(detections.cpu())
             for x1, y1, x2, y2, obj_id, cls_pred in tracked_objects:
-                box_h = int(((y2 - y1) / unpad_h) * imageArray.shape[0])
-                box_w = int(((x2 - x1) / unpad_w) * imageArray.shape[1])
-                y1 = int(((y1 - pad_y // 2) / unpad_h) * imageArray.shape[0])
-                x1 = int(((x1 - pad_x // 2) / unpad_w) * imageArray.shape[1])
+                box_h = int(((y2 - y1) / unpad_h) * img.shape[0])
+                box_w = int(((x2 - x1) / unpad_w) * img.shape[1])
+                y1 = int(((y1 - pad_y // 2) / unpad_h) * img.shape[0])
+                x1 = int(((x1 - pad_x // 2) / unpad_w) * img.shape[1])
                 cls = self.classes[int(cls_pred)]
                 obj_id = int(obj_id)
                 trackerMsg = {
@@ -107,9 +108,10 @@ class ObjectTrack():
         return trackerMsgs
 
 
-    def traceHead(self, imageArray):
-        imageArray = cv2.imdecode(imageArray, cv2.IMREAD_COLOR)
-        detections = self.m_det.infer(imageArray)
+    def traceHead(self, imgArray):
+        img = cv2.imdecode(imgArray, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        detections = self.m_det.infer(img)
         trackerMsgs = []
         if detections is not None:
             tracked_objects = self.mot_tracker.update(detections)
@@ -131,10 +133,10 @@ class ObjectTrack():
                 else:
                     if self.heads[obj_id] <= self.horizontalDividingLine < headCenter:
                         self.personOut += 1
-                        self.persons.pop(obj_id)
+                        self.heads.pop(obj_id)
                     elif headCenter <= self.horizontalDividingLine < self.heads[obj_id]:
                         self.personIn += 1
-                        self.persons.pop(obj_id)
+                        self.heads.pop(obj_id)
                 trackerMsg['personIn'] = self.personIn
                 trackerMsg['personOut'] = self.personOut
                 trackerMsgs.append(trackerMsg)
